@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ClipMaster AI</title><link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header><div class="brand"><span class="logo">CM</span><div><b>ClipMaster <i>AI</i></b><small>VIDEO CLIP STUDIO</small></div></div><span class="status">● LISTO PARA PROCESAR</span></header>
+<main>
+<section class="hero"><p class="eyebrow">TU CONTENIDO, EN CORTES CORTOS</p><h1>Convierte videos largos<br><span>en clips compartibles.</span></h1><p class="sub">Pega un enlace compatible o sube un video y crea segmentos MP4 en segundos.</p></section>
+<section class="panel">
+<div class="tabs"><button class="tab active" id="linkTab">Pegar enlace</button><button class="tab" id="uploadTab">Subir video</button></div>
+<form id="form">
+<div id="linkBox"><label for="url">ENLACE DEL VIDEO</label><input id="url" name="url" type="url" placeholder="https://youtube.com/... o enlace público" /></div>
+<div id="uploadBox" class="hidden"><label for="video">ARCHIVO DE VIDEO</label><input id="video" name="video" type="file" accept="video/*"></div>
+<label>DURACIÓN DE CADA CLIP</label><div class="choices"><label><input type="radio" name="segment" value="30">30 segundos</label><label><input type="radio" name="segment" value="60" checked>60 segundos</label><label><input type="radio" name="segment" value="90">90 segundos</label></div>
+<button class="primary" id="submit" type="submit">Crear clips <span>↗</span></button>
+<p class="fine">Usa únicamente videos propios o contenido para el que tengas permiso. La descarga desde plataformas depende de sus condiciones y de la disponibilidad del enlace.</p>
+</form>
+<div id="message" role="status"></div><div id="results"></div>
+</section>
+<section class="steps"><div><b>01</b><h3>Agrega tu video</h3><p>Usa un enlace público compatible o un archivo local.</p></div><div><b>02</b><h3>Elige el corte</h3><p>Selecciona segmentos de 30, 60 o 90 segundos.</p></div><div><b>03</b><h3>Descarga</h3><p>Obtén tus clips en formato MP4.</p></div></section>
+<footer>ClipMaster AI · Primera versión funcional</footer>
+</main>
+<script>
+const form=document.querySelector('#form'), linkTab=document.querySelector('#linkTab'), uploadTab=document.querySelector('#uploadTab');
+const linkBox=document.querySelector('#linkBox'), uploadBox=document.querySelector('#uploadBox');
+let mode='link';
+function setMode(m){mode=m;linkTab.classList.toggle('active',m==='link');uploadTab.classList.toggle('active',m==='upload');linkBox.classList.toggle('hidden',m!=='link');uploadBox.classList.toggle('hidden',m!=='upload');}
+linkTab.onclick=()=>setMode('link'); uploadTab.onclick=()=>setMode('upload');
+form.onsubmit=async e=>{e.preventDefault();const msg=document.querySelector('#message'),res=document.querySelector('#results'),btn=document.querySelector('#submit');
+const fd=new FormData();fd.append('segment',form.segment.value);
+if(mode==='link'){const u=document.querySelector('#url').value.trim();if(!u){msg.textContent='Pega primero el enlace.';return;}fd.append('url',u);}
+else{const f=document.querySelector('#video').files[0];if(!f){msg.textContent='Selecciona primero un video.';return;}fd.append('video',f);}
+btn.disabled=true;btn.textContent='Procesando video…';msg.textContent='Estamos preparando tus cortes. No cierres esta página.';res.innerHTML='';
+try{const r=await fetch('/api/process',{method:'POST',body:fd});const data=await r.json();if(!r.ok)throw new Error(data.error||'No se pudo procesar.');msg.textContent=`Listo: ${data.clips.length} clips creados a partir de un video de ${data.duration} segundos.`;res.innerHTML='<h3>Tus clips</h3>'+data.clips.map(c=>`<div class="clip"><div><b>${c.name}</b><small>Desde ${c.start}s · ${c.duration}s</small></div><a href="${c.url}">Descargar MP4 ↓</a></div>`).join('')+`<p class="fine">${data.note}</p>`;}
+catch(err){msg.textContent='Error: '+err.message;}finally{btn.disabled=false;btn.innerHTML='Crear clips <span>↗</span>';}
+};
+</script>
+</body></html>
